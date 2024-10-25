@@ -13,9 +13,7 @@ const PORT = process.env.PORT || 8080;
 // Connect To MongoDB
 connectDB();
 
-app.get("/", (req: Request, res: Response) => {
-  res.send("Hello World!");
-});
+app.use(express.json());
 
 // Mount Routes
 mountRoutes(app);

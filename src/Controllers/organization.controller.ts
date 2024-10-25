@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import Organization from "../Models/organization.model.js";
-import ApiError from "../Utils/apiError";
+import ApiError from "../Utils/apiError.js";
 import User from "../Models/user.model.js";
 
 export const createOne = async (

@@ -20,6 +20,7 @@ const userSchema = new mongoose.Schema(
     access_level: {
       type: String,
       enum: ["admin", "user"],
+      default: "user",
     },
   },
   { timestamps: true }
