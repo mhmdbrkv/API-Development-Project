@@ -1,0 +1,26 @@
+version: '3.8'
+services:
+  app:
+    build: .
+    ports:
+      - '8080:8080'
+    depends_on:
+      - mongo
+      - redis
+    environment:
+      MONGO_URI: mongodb://mongo:27017/API-Development-Project
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+  mongo:
+    image: mongo:latest
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo-data:/data/db
+  redis:
+    image: redis:latest
+    ports:
+      - '6379:6379'
+
+volumes:
+  mongo-data:
