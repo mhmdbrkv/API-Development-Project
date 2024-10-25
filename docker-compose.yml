@@ -8,9 +8,9 @@ services:
     environment:
       - PORT=8080
       - MONGO_URI=mongodb://mongo:27017/API-Development-Project
-      - UPSTASH_REDIS_URL=${rediss://default:AVbMAAIjcDFmYTZiMjBlOTk2OTU0NjdjODlhM2M4MDJjYzRkNWU0OXAxMA@usable-hornet-22220.upstash.io:6379}
-      - JWT_ACCESS_SECRET_KEY=${nk%sez5edchanm!/pijbbutf465@@zzxqqa}
-      - JWT_REFRESH_SECRET_KEY=${mpcsi001oft!@&489IUY^$*Gis8457+_!!87}
+      - UPSTASH_REDIS_URL=rediss://default:AVbMAAIjcDFmYTZiMjBlOTk2OTU0NjdjODlhM2M4MDJjYzRkNWU0OXAxMA@usable-hornet-22220.upstash.io:6379
+      - JWT_ACCESS_SECRET_KEY=nk%sez5edchanm!/pijbbutf465@@zzxqqa
+      - JWT_REFRESH_SECRET_KEY=mpcsi001oft!@&489IUY^$*Gis8457+_!!87
       - JWT_ACCESS_EXPIRE_TIME=15m
       - JWT_REFRESH_EXPIRE_TIME=15d
   mongo:
