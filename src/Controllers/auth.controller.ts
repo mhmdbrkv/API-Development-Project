@@ -9,7 +9,11 @@ import {
   generateRefreshToken,
   verifyToken,
 } from "../Utils/jwtToken.js";
-import { storeRefreshToken, getRefreshToken } from "../Utils/redis.js";
+import {
+  storeRefreshToken,
+  getRefreshToken,
+  removeRefreshToken,
+} from "../Utils/redis.js";
 
 export const signup = async (
   req: Request,
@@ -133,5 +137,47 @@ export const refreshToken = async (
   } catch (error) {
     // Properly handle errors
     return next(new ApiError("Error with refresh token", 500));
+  }
+};
+
+export const revokeRefreshToken = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const refreshToken = req.body.refresh_token;
+
+    // Check if refresh token exists in cookies
+    if (!refreshToken) {
+      return next(new ApiError("No refresh token provided", 404));
+    }
+
+    const SECRET_KEY = process.env.JWT_REFRESH_SECRET_KEY;
+
+    if (!SECRET_KEY) {
+      throw new ApiError(
+        "JWT_REFRESH_SECRET_KEY is not defined in .env file",
+        500
+      );
+    }
+
+    const decoded = await verifyToken(refreshToken, SECRET_KEY);
+
+    // Check if decoded is a JwtPayload object
+    if (typeof decoded !== "string" && (decoded as JwtPayload).userId) {
+      await removeRefreshToken((decoded as JwtPayload).userId);
+    } else {
+      // Handle error or invalid token case
+      console.error("Invalid token: no userId found");
+    }
+
+    res.status(200).json({
+      message: "Refresh token revoked successfully",
+    });
+  } catch (error) {
+    // Properly handle errors
+    next(new ApiError("Error with refresh token", 500));
+    return;
   }
 };
