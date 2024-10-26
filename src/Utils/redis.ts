@@ -1,11 +1,10 @@
 import Redis from "ioredis";
 import dotenv from "dotenv";
-import ApiError from "./apiError.js";
 dotenv.config();
 
 const redisUrl = process.env.UPSTASH_REDIS_URL;
 if (!redisUrl) {
-  throw new ApiError("UPSTASH_REDIS_URL is not defined in .env file", 500);
+  throw new Error("UPSTASH_REDIS_URL is not set");
 }
 
 const redis = new Redis(redisUrl);

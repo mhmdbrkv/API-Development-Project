@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from "express";
 import { JwtPayload } from "jsonwebtoken";
-import ApiError from "../Utils/apiError.js";
 import bcrypt from "bcryptjs";
 import User from "../Models/user.model.js";
 
@@ -24,7 +23,7 @@ export const signup = async (
     const { name, email, password, access_level } = req.body;
     const user = await User.findOne({ email });
     if (user) {
-      next(new ApiError(`User with email: ${email} already exists`, 400));
+      res.status(400).json({ message: "Email already exists" });
       return;
     }
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -38,7 +37,9 @@ export const signup = async (
     res.status(201).json({ message: "User created successfully" });
   } catch (error) {
     console.error("Signup error:", error);
-    return next(new ApiError("Signup error", 500));
+
+    res.status(500).json({ message: "Signup error" });
+    return;
   }
 };
 
@@ -53,21 +54,25 @@ export const signin = async (
     // Check if the user exists
     const user = await User.findOne({ email });
     if (!user) {
-      return next(new ApiError("Invalid email or password", 404));
+      res.status(404).json({ message: "Invalid email or password" });
+      return;
     }
 
     // Compare the provided password with the stored hashed password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return next(new ApiError("Invalid email or password", 400));
+      res.status(404).json({ message: "Invalid email or password" });
+      return;
     }
 
     // generate JWT
     const accessToken = generateAccessToken(user.id);
     const refreshToken = generateRefreshToken(user.id);
 
-    // store refresh token on redis (upstash)
-    await storeRefreshToken(user.id, refreshToken);
+    if (refreshToken) {
+      // store refresh token on redis (upstash)
+      await storeRefreshToken(user.id, refreshToken);
+    }
 
     res.status(200).json({
       message: "Signin successful",
@@ -76,7 +81,8 @@ export const signin = async (
     });
   } catch (error) {
     console.error("Signin error:", error);
-    return next(new ApiError("Signin error", 500));
+    res.status(500).json({ message: "Signin error" });
+    return;
   }
 };
 
@@ -90,16 +96,17 @@ export const refreshToken = async (
 
     // Check if refresh token exists in cookies
     if (!refreshToken) {
-      return next(new ApiError("No refresh token provided", 404));
+      res.status(404).json({ message: "No refresh token provided" });
+      return;
     }
 
     const SECRET_KEY = process.env.JWT_REFRESH_SECRET_KEY;
 
     if (!SECRET_KEY) {
-      throw new ApiError(
-        "JWT_REFRESH_SECRET_KEY is not defined in .env file",
-        500
-      );
+      res.status(500).json({
+        message: "JWT_REFRESH_SECRET_KEY is not defined in .env file",
+      });
+      return;
     }
 
     // Verify and decode the token
@@ -107,19 +114,21 @@ export const refreshToken = async (
     const { userId, exp } = decoded as JwtPayload;
 
     // Check if decoded is a JwtPayload and contains a userId
-    if (typeof decoded !== "string" && decoded.userId) {
+    if (decoded && typeof decoded !== "string" && decoded.userId) {
       // Retrieve the refresh token from Redis
       const storedRefresh = await getRefreshToken(userId);
 
       if (!storedRefresh || storedRefresh !== refreshToken) {
-        return next(new ApiError("Invalid refresh token", 401));
+        res.status(401).json({ message: "Invalid refresh token" });
+        return;
       }
 
       // Check if the refresh token is expired
       if (exp && exp * 1000 < Date.now()) {
-        return next(
-          new ApiError("Refresh token expired. Please login again", 401)
-        );
+        res
+          .status(401)
+          .json({ message: "Refresh token expired. Please login again" });
+        return;
       }
 
       // Generate a new access token using the userId
@@ -132,11 +141,13 @@ export const refreshToken = async (
       });
     } else {
       // If token is invalid or no userId is found
-      return next(new ApiError("Invalid token: no userId found", 401));
+      res.status(401).json({ message: "Invalid token: no userId found" });
+      return;
     }
   } catch (error) {
     // Properly handle errors
-    return next(new ApiError("Error with refresh token", 500));
+    res.status(500).json({ message: "Error with refresh token" });
+    return;
   }
 };
 
@@ -150,16 +161,17 @@ export const revokeRefreshToken = async (
 
     // Check if refresh token exists in cookies
     if (!refreshToken) {
-      return next(new ApiError("No refresh token provided", 404));
+      res.json({ message: "No refresh token provided" });
+      return;
     }
 
     const SECRET_KEY = process.env.JWT_REFRESH_SECRET_KEY;
 
     if (!SECRET_KEY) {
-      throw new ApiError(
-        "JWT_REFRESH_SECRET_KEY is not defined in .env file",
-        500
-      );
+      res.json({
+        message: "JWT_REFRESH_SECRET_KEY is not defined in .env file",
+      });
+      return;
     }
 
     const decoded = await verifyToken(refreshToken, SECRET_KEY);
@@ -176,8 +188,8 @@ export const revokeRefreshToken = async (
       message: "Refresh token revoked successfully",
     });
   } catch (error) {
-    // Properly handle errors
-    next(new ApiError("Error with refresh token", 500));
+    console.error(error);
+    res.status(500).json({ message: "Error with refresh token" });
     return;
   }
 };

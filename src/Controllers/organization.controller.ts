@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from "express";
 import Organization from "../Models/organization.model.js";
-import ApiError from "../Utils/apiError.js";
 import User from "../Models/user.model.js";
 
 export const createOne = async (
@@ -17,7 +16,7 @@ export const createOne = async (
     });
   } catch (error) {
     console.error(error);
-    next(new ApiError(`${error}`, 400));
+    res.status(400).json({ error });
     return;
   }
 };
@@ -32,14 +31,16 @@ export const getOne = async (
     const organization = await Organization.findById(organization_id);
 
     if (!organization_id) {
-      next(new ApiError(`No doc found with id: ${organization_id}`, 400));
+      res
+        .status(404)
+        .json({ message: `No doc found with id: ${organization_id}` });
       return;
     }
 
     res.status(200).json(organization);
   } catch (error) {
     console.error(error);
-    next(new ApiError(`${error}`, 400));
+    res.status(400).json({ error });
     return;
   }
 };
@@ -55,7 +56,7 @@ export const getMany = async (
     res.status(200).json(organization);
   } catch (error) {
     console.error(error);
-    next(new ApiError(`${error}`, 400));
+    res.status(400).json({ error });
     return;
   }
 };
@@ -70,7 +71,9 @@ export const updateOne = async (
     const { name, description } = req.body;
 
     if (!organization_id) {
-      next(new ApiError(`No doc found with id: ${organization_id}`, 400));
+      res
+        .status(404)
+        .json({ message: `No doc found with id: ${organization_id}` });
       return;
     }
 
@@ -89,7 +92,7 @@ export const updateOne = async (
     });
   } catch (error) {
     console.error(error);
-    next(new ApiError(`${error}`, 400));
+    res.status(400).json({ error });
     return;
   }
 };
@@ -103,7 +106,9 @@ export const deleteOne = async (
     const { organization_id } = req.params;
 
     if (!organization_id) {
-      next(new ApiError(`No doc found with id: ${organization_id}`, 400));
+      res
+        .status(404)
+        .json({ message: `No doc found with id: ${organization_id}` });
       return;
     }
 
@@ -114,7 +119,7 @@ export const deleteOne = async (
     });
   } catch (error) {
     console.error(error);
-    next(new ApiError(`${error}`, 400));
+    res.status(400).json({ error });
     return;
   }
 };
@@ -129,13 +134,17 @@ export const inviteMember = async (
     const { user_email } = req.body;
 
     if (!organization_id) {
-      next(new ApiError(`No doc found with id: ${organization_id}`, 400));
+      res
+        .status(404)
+        .json({ message: `No doc found with id: ${organization_id}` });
       return;
     }
     const user = await User.findOne({ email: user_email });
 
     if (!user) {
-      next(new ApiError(`No user found with email: ${user_email}`, 400));
+      res
+        .status(404)
+        .json({ message: `No user found with email: ${user_email}` });
       return;
     }
 
@@ -152,7 +161,7 @@ export const inviteMember = async (
     });
   } catch (error) {
     console.error(error);
-    next(new ApiError(`${error}`, 400));
+    res.status(400).json({ error });
     return;
   }
 };

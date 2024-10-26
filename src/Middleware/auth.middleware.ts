@@ -1,7 +1,6 @@
 import { Document } from "mongoose";
 import JWT, { JwtPayload } from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
-import ApiError from "../Utils/apiError.js";
 import User from "../Models/user.model.js";
 
 interface User extends Document {
@@ -26,31 +25,29 @@ export const guard = async (
 ) => {
   // 1) Check if token exists in request
   let token = null;
-
-  if (req.cookies && req.cookies.accessToken) {
-    token = req.cookies.accessToken;
-  } else if (
+  if (
     req.headers.authorization &&
     req.headers.authorization.startsWith("Bearer ")
   ) {
     token = req.headers.authorization.split(" ")[1];
-  } else if (req.body && req.body.token) {
-    token = req.body.token;
+  } else if (req.body && req.body.accessToken) {
+    token = req.body.accessToken;
   }
 
   // 2) If no token is found, return an error
   if (!token) {
-    return next(new ApiError("Not authenticated to perform this action.", 401));
+    res.status(401).json({ message: "You are not authenticated" });
+    return;
   }
 
   try {
     const SECRET_KEY = process.env.JWT_ACCESS_SECRET_KEY;
 
     if (!SECRET_KEY) {
-      throw new ApiError(
-        "JWT_ACCESS_SECRET_KEY is not defined in .env file",
-        500
-      );
+      res
+        .status(500)
+        .json({ message: `JWT_ACCESS_SECRET_KEY is not defined in .env file` });
+      return;
     }
 
     // 3) Verify the token
@@ -60,23 +57,19 @@ export const guard = async (
     const loggedUser = await User.findById(userId);
 
     if (!loggedUser) {
-      return next(new ApiError("User not found", 404));
+      res.status(404).json({ message: "User not found" });
+      return;
     }
 
     // 5) Attach the user to the request object for future middleware or routes
-    req.user = loggedUser as unknown as User;
+    req.user = loggedUser as User;
 
     // 6) Continue to the next middleware or route handler
     next();
   } catch (error) {
-    console.error("Token verification error:", error);
-
-    return next(
-      new ApiError(
-        "Something went wrong with access token, please log in again.",
-        401
-      )
-    );
+    console.error("Token verification error: ", error);
+    res.status(500).json({ message: "Internal Server Error. Login again" });
+    return;
   }
 };
 
@@ -86,11 +79,14 @@ export const allowedTo =
     // 1) Get the user from the request object
     const user = req.user;
     if (!user) {
-      return next(new ApiError("Access Denied - No user found", 403));
+      res.status(401).json({ message: "Access Denied - No user found" });
+      return;
     }
 
-    if (!access_levels.includes(user.access_level))
-      return next(new ApiError("Access Denied - Admin Only", 403));
+    if (!access_levels.includes(user.access_level)) {
+      res.status(403).json({ message: "Access Denied - Admin Only" });
+      return;
+    }
 
     next();
   };

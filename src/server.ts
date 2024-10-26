@@ -1,10 +1,8 @@
 import express, { Request, Response } from "express";
 import connectDB from "./config/db.js";
-import * as dotenv from "dotenv";
+import dotenv from "dotenv";
 
 import mountRoutes from "./Routes/index.js";
-import ApiError from "./Utils/apiError.js";
-import errorMiddleware from "./Middleware/error.middleware.js";
 
 dotenv.config();
 const app = express();
@@ -13,17 +11,16 @@ const PORT = process.env.PORT || 8080;
 // Connect To MongoDB
 connectDB();
 
-app.use(express.json());
+app.use(express.json({ limit: "20kb" })); // allows you to parse the body of the request
+app.use(express.urlencoded({ extended: true }));
 
 // Mount Routes
 mountRoutes(app);
 
 app.all("*", (req, res, next) => {
-  next(new ApiError("Route not found", 404));
+  res.status(404).json({ message: "Route Not Found" });
+  return;
 });
-
-// Global Error Handling Inside Express
-app.use(errorMiddleware);
 
 const server = app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
